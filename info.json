@@ -1,0 +1,15 @@
+{
+    "participants": [
+        "Henrique Silveira"
+    ],
+    "social": [
+        "https://github.com/henriquemtn",
+        "https://www.linkedin.com/in/henriquemtn/"
+    ],
+    "source-code-repo": "https://github.com/henriquemtn/rinha-backend-2026",
+    "stack": [
+        "go",
+        "nginx"
+    ],
+    "open_to_work": false
+}
