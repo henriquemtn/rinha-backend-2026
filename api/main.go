@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"time"
 )
 
 func main() {
@@ -14,7 +15,9 @@ func main() {
 	normalizationPath := envOrDefault("NORMALIZATION_PATH", "resources/normalization.json")
 	mccRiskPath := envOrDefault("MCC_RISK_PATH", "resources/mcc_risk.json")
 	referencesPath := envOrDefault("REFERENCES_PATH", "resources/references.json.gz")
+	startLoad := time.Now()
 	LoadResources(normalizationPath, mccRiskPath, referencesPath)
+	logStartupStats(time.Since(startLoad))
 
 	mux := http.NewServeMux()
 
@@ -35,4 +38,12 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func logStartupStats(loadDuration time.Duration) {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	log.Printf("Resources loaded in %s", loadDuration.Round(time.Millisecond))
+	log.Printf("References: %d", len(ReferenceLabels))
+	log.Printf("Memory: alloc=%dMB sys=%dMB", mem.Alloc/1024/1024, mem.Sys/1024/1024)
 }
