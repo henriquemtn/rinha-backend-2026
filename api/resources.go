@@ -24,8 +24,10 @@ type referenceDTO struct {
 	Label  string      `json:"label"`
 }
 
+const vectorDims = 14
+
 var NormalizationData Normalization
-var ReferenceVectors [][14]float32
+var ReferenceVectors []uint16
 var ReferenceLabels []bool
 var MccRisk map[string]float64
 
@@ -64,9 +66,21 @@ func LoadReferences(path string) {
 		if err := dec.Decode(&ref); err != nil {
 			log.Fatalf("Erro ao decodificar referência: %v", err)
 		}
-		ReferenceVectors = append(ReferenceVectors, ref.Vector)
+		for i := 0; i < vectorDims; i++ {
+			ReferenceVectors = append(ReferenceVectors, quantizeVectorValue(ref.Vector[i]))
+		}
 		ReferenceLabels = append(ReferenceLabels, ref.Label == "fraud")
 	}
+}
+
+func quantizeVectorValue(v float32) uint16 {
+	if v < -1 {
+		v = -1
+	}
+	if v > 1 {
+		v = 1
+	}
+	return uint16((v + 1) * 32767.5)
 }
 
 func openMaybeGzip(r io.Reader) (io.Reader, io.Closer, error) {
