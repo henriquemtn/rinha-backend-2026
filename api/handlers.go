@@ -30,7 +30,11 @@ func FraudScore(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	approved, score := CalculateScore(payload)
+	approved, score, err := CalculateScore(payload)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
