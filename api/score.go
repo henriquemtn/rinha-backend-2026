@@ -23,23 +23,23 @@ func CalculateScore(p Payload) (bool, float64, error) {
 	}
 
 	var distances [knnK]float64
-	var labels [knnK]string
+	var labels [knnK]bool
 	for i := 0; i < knnK; i++ {
 		distances[i] = math.Inf(1)
 	}
 
 	for i := 0; i < len(ReferenceVectors); i++ {
-		ref := &ReferenceVectors[i]
-		dist := distanceSquared(query, ref.Vector)
+		ref := ReferenceVectors[i]
+		dist := distanceSquared(query, ref)
 		if dist >= distances[knnK-1] {
 			continue
 		}
-		insertNeighbor(distances[:], labels[:], dist, ref.Label)
+		insertNeighbor(distances[:], labels[:], dist, ReferenceLabels[i])
 	}
 
 	fraudCount := 0
 	for i := 0; i < knnK; i++ {
-		if labels[i] == "fraud" {
+		if labels[i] {
 			fraudCount++
 		}
 	}
@@ -49,16 +49,16 @@ func CalculateScore(p Payload) (bool, float64, error) {
 	return approved, fraudScore, nil
 }
 
-func distanceSquared(a, b [14]float64) float64 {
+func distanceSquared(a [14]float64, b [14]float32) float64 {
 	var sum float64
 	for i := 0; i < 14; i++ {
-		d := a[i] - b[i]
+		d := a[i] - float64(b[i])
 		sum += d * d
 	}
 	return sum
 }
 
-func insertNeighbor(distances []float64, labels []string, dist float64, label string) {
+func insertNeighbor(distances []float64, labels []bool, dist float64, label bool) {
 	pos := len(distances) - 1
 	for pos > 0 && dist < distances[pos-1] {
 		distances[pos] = distances[pos-1]

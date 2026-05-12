@@ -19,13 +19,14 @@ type Normalization struct {
 	MaxMerchantAvgAmount float64 `json:"max_merchant_avg_amount"`
 }
 
-type Reference struct {
-	Vector [14]float64 `json:"vector"`
+type referenceDTO struct {
+	Vector [14]float32 `json:"vector"`
 	Label  string      `json:"label"`
 }
 
 var NormalizationData Normalization
-var ReferenceVectors []Reference
+var ReferenceVectors [][14]float32
+var ReferenceLabels []bool
 var MccRisk map[string]float64
 
 func LoadNormalization(path string) {
@@ -59,11 +60,12 @@ func LoadReferences(path string) {
 		log.Fatalf("Formato inválido em references: esperado '['")
 	}
 	for dec.More() {
-		var ref Reference
+		var ref referenceDTO
 		if err := dec.Decode(&ref); err != nil {
 			log.Fatalf("Erro ao decodificar referência: %v", err)
 		}
-		ReferenceVectors = append(ReferenceVectors, ref)
+		ReferenceVectors = append(ReferenceVectors, ref.Vector)
+		ReferenceLabels = append(ReferenceLabels, ref.Label == "fraud")
 	}
 }
 
