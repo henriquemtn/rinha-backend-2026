@@ -10,9 +10,11 @@ const (
 	fraudThreshold = 0.6
 )
 
+var ErrResourcesNotLoaded = errors.New("resources not loaded")
+
 func CalculateScore(p Payload) (bool, float64, error) {
 	if len(ReferenceVectors) == 0 {
-		return true, 0, errors.New("reference vectors not loaded")
+		return true, 0, ErrResourcesNotLoaded
 	}
 
 	query, err := GenerateVector(p)

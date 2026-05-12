@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -12,13 +13,13 @@ func Ready(w http.ResponseWriter, r *http.Request) {
 
 func FraudScore(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	defer r.Body.Close()
@@ -26,13 +27,17 @@ func FraudScore(w http.ResponseWriter, r *http.Request) {
 	var payload Payload
 
 	if err := json.Unmarshal(body, &payload); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
 
 	approved, score, err := CalculateScore(payload)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		if errors.Is(err, ErrResourcesNotLoaded) {
+			writeJSONError(w, http.StatusInternalServerError, "resources not loaded")
+			return
+		}
+		writeJSONError(w, http.StatusBadRequest, "invalid payload")
 		return
 	}
 
@@ -40,5 +45,13 @@ func FraudScore(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"approved":    approved,
 		"fraud_score": score,
+	})
+}
+
+func writeJSONError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": message,
 	})
 }

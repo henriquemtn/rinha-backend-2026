@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"compress/gzip"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 )
@@ -43,16 +45,18 @@ func LoadReferences(path string) {
 		log.Fatalf("Erro ao abrir references.json.gz: %v", err)
 	}
 	defer f.Close()
-	gz, err := gzip.NewReader(f)
+	reader, closer, err := openMaybeGzip(f)
 	if err != nil {
-		log.Fatalf("Erro ao criar gzip reader: %v", err)
+		log.Fatalf("Erro ao abrir referencias: %v", err)
 	}
-	defer gz.Close()
-	dec := json.NewDecoder(gz)
+	if closer != nil {
+		defer closer.Close()
+	}
+	dec := json.NewDecoder(reader)
 	if token, err := dec.Token(); err != nil {
 		log.Fatalf("Erro ao ler início do array: %v", err)
 	} else if delim, ok := token.(json.Delim); !ok || delim != '[' {
-		log.Fatalf("Formato inválido em references.json.gz: esperado '['")
+		log.Fatalf("Formato inválido em references: esperado '['")
 	}
 	for dec.More() {
 		var ref Reference
@@ -61,6 +65,19 @@ func LoadReferences(path string) {
 		}
 		ReferenceVectors = append(ReferenceVectors, ref)
 	}
+}
+
+func openMaybeGzip(r io.Reader) (io.Reader, io.Closer, error) {
+	buf := bufio.NewReader(r)
+	peek, err := buf.Peek(2)
+	if err == nil && len(peek) == 2 && peek[0] == 0x1f && peek[1] == 0x8b {
+		gz, err := gzip.NewReader(buf)
+		if err != nil {
+			return nil, nil, err
+		}
+		return gz, gz, nil
+	}
+	return buf, nil, nil
 }
 
 func LoadMccRisk(path string) {
