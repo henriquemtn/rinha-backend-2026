@@ -120,9 +120,12 @@ func LoadResources(normalizationPath, mccRiskPath, referencesPath string) {
 			log.Printf("IVF disabled: %v", err)
 			return
 		}
-		if err := BuildIVFIndex(k, samples, iterations, nProbe); err != nil {
-			log.Printf("IVF disabled: %v", err)
-		}
+		go func() {
+			log.Printf("IVF build started: k=%d samples=%d iterations=%d n_probe=%d", k, samples, iterations, nProbe)
+			if err := BuildIVFIndex(k, samples, iterations, nProbe); err != nil {
+				log.Printf("IVF disabled: %v", err)
+			}
+		}()
 	}
 }
 

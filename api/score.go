@@ -3,12 +3,17 @@ package main
 import (
 	"errors"
 	"math"
+	"os"
+	"strconv"
 )
 
 const (
-	knnK           = 5
-	fraudThreshold = 0.6
+	knnK                 = 5
+	fraudThreshold       = 0.6
+	defaultFullScanLimit = 200000
 )
+
+var fullScanLimit = loadFullScanLimit()
 
 var ErrResourcesNotLoaded = errors.New("resources not loaded")
 
@@ -38,7 +43,12 @@ func scoreWithFullScan(query [14]float64) (bool, float64, error) {
 		distances[i] = math.Inf(1)
 	}
 
-	for i := 0; i < len(ReferenceLabels); i++ {
+	limit := fullScanLimit
+	if limit <= 0 || limit > len(ReferenceLabels) {
+		limit = len(ReferenceLabels)
+	}
+
+	for i := 0; i < limit; i++ {
 		dist := distanceSquared(query, i)
 		if dist >= distances[knnK-1] {
 			continue
@@ -110,4 +120,16 @@ func insertNeighbor(distances []float64, labels []bool, dist float64, label bool
 	}
 	distances[pos] = dist
 	labels[pos] = label
+}
+
+func loadFullScanLimit() int {
+	raw := os.Getenv("FULLSCAN_LIMIT")
+	if raw == "" {
+		return defaultFullScanLimit
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return defaultFullScanLimit
+	}
+	return parsed
 }

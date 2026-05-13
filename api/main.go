@@ -16,14 +16,6 @@ func main() {
 	// Set GOMAXPROCS to 1 because each API container is limited to 0.45 CPU.
 	runtime.GOMAXPROCS(1)
 
-	// Load datasets and normalization metadata upfront to avoid runtime I/O.
-	normalizationPath := envOrDefault("NORMALIZATION_PATH", "resources/normalization.json")
-	mccRiskPath := envOrDefault("MCC_RISK_PATH", "resources/mcc_risk.json")
-	referencesPath := envOrDefault("REFERENCES_PATH", "resources/references.json.gz")
-	startLoad := time.Now()
-	LoadResources(normalizationPath, mccRiskPath, referencesPath)
-	logStartupStats(time.Since(startLoad))
-
 	// Build the HTTP server and bind to TCP or Unix socket based on LISTEN_ADDR.
 	listenAddr := envOrDefault("LISTEN_ADDR", ":9999")
 
@@ -37,7 +29,20 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Server running on %s", listenAddr)
-	log.Fatal(server.Serve(listener))
+	go func() {
+		log.Fatal(server.Serve(listener))
+	}()
+
+	// Load datasets and normalization metadata after the server is listening.
+	normalizationPath := envOrDefault("NORMALIZATION_PATH", "resources/normalization.json")
+	mccRiskPath := envOrDefault("MCC_RISK_PATH", "resources/mcc_risk.json")
+	referencesPath := envOrDefault("REFERENCES_PATH", "resources/references.json.gz")
+	startLoad := time.Now()
+	LoadResources(normalizationPath, mccRiskPath, referencesPath)
+	logStartupStats(time.Since(startLoad))
+	SetReady(true)
+
+	select {}
 }
 
 func envOrDefault(key, fallback string) string {

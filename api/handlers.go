@@ -3,9 +3,12 @@ package main
 import (
 	"errors"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/valyala/fasthttp"
 )
+
+var readyFlag uint32
 
 func Router(ctx *fasthttp.RequestCtx) {
 	// Minimal router to keep overhead low.
@@ -22,6 +25,10 @@ func Router(ctx *fasthttp.RequestCtx) {
 }
 
 func Ready(ctx *fasthttp.RequestCtx) {
+	if atomic.LoadUint32(&readyFlag) == 0 {
+		ctx.SetStatusCode(fasthttp.StatusServiceUnavailable)
+		return
+	}
 	ctx.SetStatusCode(fasthttp.StatusOK)
 }
 
@@ -29,6 +36,11 @@ func FraudScore(ctx *fasthttp.RequestCtx) {
 	// Validate method and body upfront.
 	if string(ctx.Method()) != fasthttp.MethodPost {
 		writeJSONError(ctx, fasthttp.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	if atomic.LoadUint32(&readyFlag) == 0 {
+		writeJSONError(ctx, fasthttp.StatusServiceUnavailable, "resources not loaded")
 		return
 	}
 
@@ -89,4 +101,12 @@ func buildErrorResponse(message string) []byte {
 	buf = strconv.AppendQuote(buf, message)
 	buf = append(buf, '}')
 	return buf
+}
+
+func SetReady(ready bool) {
+	if ready {
+		atomic.StoreUint32(&readyFlag, 1)
+		return
+	}
+	atomic.StoreUint32(&readyFlag, 0)
 }
