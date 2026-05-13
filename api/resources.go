@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 )
 
 type Normalization struct {
@@ -111,4 +112,43 @@ func LoadResources(normalizationPath, mccRiskPath, referencesPath string) {
 	LoadNormalization(normalizationPath)
 	LoadMccRisk(mccRiskPath)
 	LoadReferences(referencesPath)
+
+	// Build IVF index after references are loaded to speed up queries.
+	k, samples, iterations, nProbe := loadIVFConfig()
+	if k > 0 {
+		if err := sanityCheckIVFConfig(k, nProbe); err != nil {
+			log.Printf("IVF disabled: %v", err)
+			return
+		}
+		if err := BuildIVFIndex(k, samples, iterations, nProbe); err != nil {
+			log.Printf("IVF disabled: %v", err)
+		}
+	}
+}
+
+func loadIVFConfig() (int, int, int, int) {
+	// Defaults tuned for faster startup with measurable speedups.
+	const (
+		defaultK          = 1024
+		defaultSamples    = 50000
+		defaultIterations = 8
+		defaultNProbe     = 8
+	)
+
+	return envIntOrDefault("IVF_K", defaultK),
+		envIntOrDefault("IVF_TRAIN_SAMPLES", defaultSamples),
+		envIntOrDefault("IVF_ITER", defaultIterations),
+		envIntOrDefault("N_PROBE", defaultNProbe)
+}
+
+func envIntOrDefault(key string, fallback int) int {
+	value, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }

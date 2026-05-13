@@ -3,18 +3,20 @@ package main
 import (
 	"log"
 	"net"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/valyala/fasthttp"
 )
 
 func main() {
 	// Set GOMAXPROCS to 1 because each API container is limited to 0.45 CPU.
 	runtime.GOMAXPROCS(1)
 
+	// Load datasets and normalization metadata upfront to avoid runtime I/O.
 	normalizationPath := envOrDefault("NORMALIZATION_PATH", "resources/normalization.json")
 	mccRiskPath := envOrDefault("MCC_RISK_PATH", "resources/mcc_risk.json")
 	referencesPath := envOrDefault("REFERENCES_PATH", "resources/references.json.gz")
@@ -22,14 +24,13 @@ func main() {
 	LoadResources(normalizationPath, mccRiskPath, referencesPath)
 	logStartupStats(time.Since(startLoad))
 
+	// Build the HTTP server and bind to TCP or Unix socket based on LISTEN_ADDR.
 	listenAddr := envOrDefault("LISTEN_ADDR", ":9999")
 
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/ready", Ready)
-	mux.HandleFunc("/fraud-score", FraudScore)
-
-	server := &http.Server{Handler: mux}
+	server := &fasthttp.Server{
+		Handler: Router,
+		Name:    "rinha-backend-2026",
+	}
 
 	listener, err := createListener(listenAddr)
 	if err != nil {
