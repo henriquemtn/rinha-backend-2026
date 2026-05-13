@@ -7,10 +7,11 @@ services:
       MCC_RISK_PATH: /app/resources/mcc_risk.json
       REFERENCES_PATH: /app/resources/references.json.gz
       LISTEN_ADDR: /run/sock/api1.sock
-      IVF_K: "1024"
+      IVF_K: "2048"
       IVF_TRAIN_SAMPLES: "50000"
       IVF_ITER: "8"
-      N_PROBE: "8"
+      N_PROBE: "4"
+      FULLSCAN_LIMIT: "100000"
       GOMAXPROCS: "1"
       GOMEMLIMIT: "150MiB"
     volumes:
@@ -29,10 +30,11 @@ services:
       MCC_RISK_PATH: /app/resources/mcc_risk.json
       REFERENCES_PATH: /app/resources/references.json.gz
       LISTEN_ADDR: /run/sock/api2.sock
-      IVF_K: "1024"
+      IVF_K: "2048"
       IVF_TRAIN_SAMPLES: "50000"
       IVF_ITER: "8"
-      N_PROBE: "8"
+      N_PROBE: "4"
+      FULLSCAN_LIMIT: "100000"
       GOMAXPROCS: "1"
       GOMEMLIMIT: "150MiB"
     volumes:
