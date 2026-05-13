@@ -19,6 +19,10 @@ COPY resources /app/resources
 ENV NORMALIZATION_PATH=/app/resources/normalization.json
 ENV MCC_RISK_PATH=/app/resources/mcc_risk.json
 ENV REFERENCES_PATH=/app/resources/references.json.gz
+ENV IVF_K=1024
+ENV IVF_TRAIN_SAMPLES=50000
+ENV IVF_ITER=8
+ENV N_PROBE=8
 
 EXPOSE 9999
 
