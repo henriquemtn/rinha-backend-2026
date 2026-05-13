@@ -3,8 +3,14 @@ services:
     image: starwhenry/rinha-backend-2026:latest
     container_name: api1
     environment:
+      NORMALIZATION_PATH: /app/resources/normalization.json
+      MCC_RISK_PATH: /app/resources/mcc_risk.json
       REFERENCES_PATH: /app/resources/references.json.gz
       LISTEN_ADDR: /run/sock/api1.sock
+      IVF_K: "1024"
+      IVF_TRAIN_SAMPLES: "50000"
+      IVF_ITER: "8"
+      N_PROBE: "8"
       GOMAXPROCS: "1"
       GOMEMLIMIT: "150MiB"
     volumes:
@@ -19,8 +25,14 @@ services:
     image: starwhenry/rinha-backend-2026:latest
     container_name: api2
     environment:
+      NORMALIZATION_PATH: /app/resources/normalization.json
+      MCC_RISK_PATH: /app/resources/mcc_risk.json
       REFERENCES_PATH: /app/resources/references.json.gz
       LISTEN_ADDR: /run/sock/api2.sock
+      IVF_K: "1024"
+      IVF_TRAIN_SAMPLES: "50000"
+      IVF_ITER: "8"
+      N_PROBE: "8"
       GOMAXPROCS: "1"
       GOMEMLIMIT: "150MiB"
     volumes:
