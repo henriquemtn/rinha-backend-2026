@@ -1,29 +1,20 @@
-FROM golang:1.24-alpine AS build
-
-WORKDIR /app
-
-COPY api/go.mod api/go.sum ./
+FROM golang:1.24-alpine AS builder
+RUN apk add --no-cache build-base
+WORKDIR /src
+COPY go.mod go.sum ./
 RUN go mod download
-
-COPY api/. ./
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /bin/server .
+COPY . .
+RUN mkdir -p dataset && cp resources/references.json.gz resources/ && cp resources/normalization.json resources/ && cp resources/mcc_risk.json resources/
+RUN CGO_ENABLED=1 go build -o indexer ./cmd/indexer
+RUN CGO_ENABLED=1 go build -o api ./cmd/api
+RUN ./indexer
 
 FROM alpine:3.20
-
+WORKDIR /app/dataset
+COPY --from=builder /src/api /app/
+COPY --from=builder /src/resources/ivf.bin .
+COPY --from=builder /src/resources/normalization.json .
+COPY --from=builder /src/resources/mcc_risk.json .
 WORKDIR /app
-
-COPY --from=build /bin/server /app/server
-COPY resources /app/resources
-
-ENV NORMALIZATION_PATH=/app/resources/normalization.json
-ENV MCC_RISK_PATH=/app/resources/mcc_risk.json
-ENV REFERENCES_PATH=/app/resources/references.json.gz
-ENV IVF_K=1024
-ENV IVF_TRAIN_SAMPLES=50000
-ENV IVF_ITER=8
-ENV N_PROBE=8
-
-EXPOSE 9999
-
-CMD ["/app/server"]
+EXPOSE 8080
+CMD ["./api"]
