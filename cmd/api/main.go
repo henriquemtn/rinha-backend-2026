@@ -26,9 +26,9 @@ var (
 
 func main() {
 	listenAddr := envOrDefault("LISTEN_ADDR", "/run/sock/api.sock")
-	normPath := envOrDefault("NORMALIZATION_PATH", "resources/normalization.json")
-	mccPath := envOrDefault("MCC_RISK_PATH", "resources/mcc_risk.json")
-	ivfPath := envOrDefault("IVF_PATH", "resources/ivf.bin")
+	normPath := envOrDefault("NORMALIZATION_PATH", "dataset/normalization.json")
+	mccPath := envOrDefault("MCC_RISK_PATH", "dataset/mcc_risk.json")
+	ivfPath := envOrDefault("IVF_PATH", "dataset/ivf.bin")
 
 	nProbeFast := envIntOrDefault("N_PROBE_FAST", 8)
 	nProbeFull := envIntOrDefault("N_PROBE_FULL", 28)

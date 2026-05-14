@@ -15,7 +15,7 @@ type Reference struct {
 }
 
 func main() {
-	refs, err := loadReferences("resources/references.json.gz")
+	refs, err := loadReferences("dataset/references.json.gz")
 	if err != nil {
 		log.Fatalf("load: %v", err)
 	}
@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("build: %v", err)
 	}
 
-	f, err := os.Create("resources/ivf.bin")
+	f, err := os.Create("dataset/ivf.bin")
 	if err != nil {
 		log.Fatalf("create: %v", err)
 	}
