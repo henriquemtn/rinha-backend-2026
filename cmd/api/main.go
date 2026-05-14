@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
 	"os"
@@ -19,9 +20,14 @@ import (
 var (
 	index   *ivf.Index
 	norm    *vector.Norm
-	mccRisk vector.MccRisk
+	mccRisk *vector.MccRisk
 
 	readyFlag uint32
+)
+
+var (
+	readyPath      = []byte("/ready")
+	fraudScorePath = []byte("/fraud-score")
 )
 
 func main() {
@@ -68,8 +74,8 @@ func main() {
 }
 
 func handler(ctx *fasthttp.RequestCtx, nProbeFast, nProbeFull int) {
-	path := string(ctx.Path())
-	if path == "/ready" {
+	path := ctx.Path()
+	if bytes.Equal(path, readyPath) {
 		if !ctx.IsGet() {
 			ctx.SetStatusCode(fasthttp.StatusMethodNotAllowed)
 			return
@@ -82,7 +88,7 @@ func handler(ctx *fasthttp.RequestCtx, nProbeFast, nProbeFull int) {
 		return
 	}
 
-	if path != "/fraud-score" {
+	if !bytes.Equal(path, fraudScorePath) {
 		ctx.SetStatusCode(fasthttp.StatusNotFound)
 		return
 	}

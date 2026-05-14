@@ -6,8 +6,9 @@ import (
 	"rinha-backend-2026-go/internal/vector"
 )
 
-func pickTopFromDists(distances []float64, K, nProbe int) []uint32 {
-	var chosen [28]uint32
+const maxProbe = 28
+
+func pickTopFromDists(distances []float64, K, nProbe int, chosen *[maxProbe]uint32) []uint32 {
 	var chosenDistances [28]float64
 	worst := math.MaxFloat64
 	worstIdx := 0
@@ -32,7 +33,23 @@ func pickTopFromDists(distances []float64, K, nProbe int) []uint32 {
 			worst = chosenDistances[worstIdx]
 		}
 	}
+	sortChosen(chosen, &chosenDistances, count)
 	return chosen[:count]
+}
+
+func sortChosen(chosen *[maxProbe]uint32, distances *[maxProbe]float64, count int) {
+	for i := 1; i < count; i++ {
+		c := chosen[i]
+		d := distances[i]
+		j := i - 1
+		for j >= 0 && distances[j] > d {
+			chosen[j+1] = chosen[j]
+			distances[j+1] = distances[j]
+			j--
+		}
+		chosen[j+1] = c
+		distances[j+1] = d
+	}
 }
 
 func indexOfMax(xs []float64) int {

@@ -3,6 +3,7 @@ package vector
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 )
 
 // LoadNorm reads normalization.json.
@@ -19,7 +20,7 @@ func LoadNorm(path string) (*Norm, error) {
 }
 
 // LoadMccRisk reads mcc_risk.json into a MccRisk map.
-func LoadMccRisk(path string) (MccRisk, error) {
+func LoadMccRisk(path string) (*MccRisk, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -28,9 +29,15 @@ func LoadMccRisk(path string) (MccRisk, error) {
 	if err := json.Unmarshal(raw, &parsed); err != nil {
 		return nil, err
 	}
-	out := make(MccRisk, len(parsed))
-	for code, risk := range parsed {
-		out[code] = risk
+	var out MccRisk
+	for i := range out {
+		out[i] = DefaultMccRisk
 	}
-	return out, nil
+	for code, risk := range parsed {
+		idx, err := strconv.Atoi(code)
+		if err == nil && idx >= 0 && idx < len(out) {
+			out[idx] = risk
+		}
+	}
+	return &out, nil
 }

@@ -25,8 +25,17 @@ func (idx *Index) FraudScore(query [vector.Dim]float64, nProbeFast, nProbeFull i
 	if nProbeFast > K {
 		nProbeFast = K
 	}
+	if nProbeFast > maxProbe {
+		nProbeFast = maxProbe
+	}
+	if nProbeFull < nProbeFast {
+		nProbeFull = nProbeFast
+	}
 	if nProbeFull > K {
 		nProbeFull = K
+	}
+	if nProbeFull > maxProbe {
+		nProbeFull = maxProbe
 	}
 
 	var queryI32 [16]int32
@@ -40,15 +49,16 @@ func (idx *Index) FraudScore(query [vector.Dim]float64, nProbeFast, nProbeFull i
 
 	computeCentroidDistances(query, idx.CentroidsF64Data(), idx.CentroidNormsData(), K, dists)
 
-	fastChosen := pickTopFromDists(dists, K, nProbeFast)
-	fastCount := idx.scanClusters(&queryI32, fastChosen)
+	var chosenBuf [maxProbe]uint32
+	chosen := pickTopFromDists(dists, K, nProbeFull, &chosenBuf)
+	fastCount, topDistances, topLabels, worstIdx := idx.scanInitialClusters(&queryI32, chosen[:nProbeFast])
 
 	if nProbeFull <= nProbeFast || (fastCount != 2 && fastCount != 3) {
 		return fastCount
 	}
 
-	fullChosen := pickTopFromDists(dists, K, nProbeFull)
-	return idx.scanClusters(&queryI32, fullChosen)
+	idx.scanMoreClusters(&queryI32, chosen[nProbeFast:], &topDistances, &topLabels, worstIdx)
+	return countFrauds(&topLabels)
 }
 
 func computeCentroidDistances(query [vector.Dim]float64, centroids, normsSq []float64, K int, out []float64) {
@@ -72,14 +82,18 @@ func computeCentroidDistances(query [vector.Dim]float64, centroids, normsSq []fl
 	}
 }
 
-func (idx *Index) scanClusters(query *[16]int32, clusters []uint32) int {
+func (idx *Index) scanInitialClusters(query *[16]int32, clusters []uint32) (int, [vector.TopK]int64, [vector.TopK]uint8, int) {
 	var topDistances [vector.TopK]int64
 	var topLabels [vector.TopK]uint8
 	for j := range topDistances {
 		topDistances[j] = 1<<63 - 1
 	}
 	worstIdx := 0
+	worstIdx = idx.scanMoreClusters(query, clusters, &topDistances, &topLabels, worstIdx)
+	return countFrauds(&topLabels), topDistances, topLabels, worstIdx
+}
 
+func (idx *Index) scanMoreClusters(query *[16]int32, clusters []uint32, topDistances *[vector.TopK]int64, topLabels *[vector.TopK]uint8, worstIdx int) int {
 	blocks := idx.BlocksData()
 	labels := idx.LabelsData()
 	offsets := idx.OffsetsData()
@@ -99,11 +113,14 @@ func (idx *Index) scanClusters(query *[16]int32, clusters []uint32) int {
 				topDistances[worstIdx])
 
 			for v := 0; v < consts.BlockSize; v++ {
-				worstIdx = updateTopK(&topDistances, &topLabels, worstIdx, blockDist[v], labels[labelOffset+v])
+				worstIdx = updateTopK(topDistances, topLabels, worstIdx, blockDist[v], labels[labelOffset+v])
 			}
 		}
 	}
+	return worstIdx
+}
 
+func countFrauds(topLabels *[vector.TopK]uint8) int {
 	frauds := 0
 	for j := 0; j < vector.TopK; j++ {
 		if topLabels[j] == 1 {

@@ -21,4 +21,4 @@ type Norm struct {
 	MaxMerchantAvgAmount float64 `json:"max_merchant_avg_amount"`
 }
 
-type MccRisk map[string]float64
+type MccRisk [10000]float64

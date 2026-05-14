@@ -38,6 +38,8 @@ var payloadPaths = [][]string{
 	pLastTransaction: {"last_transaction"},
 }
 
+var trueValue = []byte("true")
+
 type rawFields struct {
 	amount         []byte
 	installments   []byte
@@ -55,7 +57,7 @@ type rawFields struct {
 	lastTxType     jsonparser.ValueType
 }
 
-func FromPayload(payload []byte, norm *Norm, mcc MccRisk, out *[Dim]float64) error {
+func FromPayload(payload []byte, norm *Norm, mcc *MccRisk, out *[Dim]float64) error {
 	*out = [Dim]float64{}
 
 	var f rawFields
@@ -140,22 +142,32 @@ func FromPayload(payload []byte, norm *Norm, mcc MccRisk, out *[Dim]float64) err
 
 	out[7] = clamp(kmHome / norm.MaxKm)
 	out[8] = clamp(txCount / norm.MaxTxCount24h)
-	if bytesEqual(f.isOnline, []byte("true")) {
+	if bytesEqual(f.isOnline, trueValue) {
 		out[9] = 1
 	}
-	if bytesEqual(f.cardPresent, []byte("true")) {
+	if bytesEqual(f.cardPresent, trueValue) {
 		out[10] = 1
 	}
 
 	out[11] = computeUnknownMerchant(f.knownMerchants, f.merchantID)
-	if risk, ok := mcc[string(f.mcc)]; ok {
-		out[12] = risk
-	} else {
-		out[12] = DefaultMccRisk
-	}
+	out[12] = mccRiskFor(mcc, f.mcc)
 	out[13] = clamp(merchantAvg / norm.MaxMerchantAvgAmount)
 
 	return nil
+}
+
+func mccRiskFor(mcc *MccRisk, raw []byte) float64 {
+	if mcc == nil || len(raw) != 4 {
+		return DefaultMccRisk
+	}
+	code := 0
+	for _, b := range raw {
+		if b < '0' || b > '9' {
+			return DefaultMccRisk
+		}
+		code = code*10 + int(b-'0')
+	}
+	return mcc[code]
 }
 
 func fillLastTransaction(f *rawFields, norm *Norm, ry, rmo, rd, rh, rmi, rs int, out *[Dim]float64) {
