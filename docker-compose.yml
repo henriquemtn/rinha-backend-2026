@@ -1,5 +1,5 @@
 services:
-  api1: &api
+  api1:
     platform: linux/amd64
     image: starwhenry/rinha-backend-2026:latest
     environment:
@@ -19,9 +19,23 @@ services:
           memory: '165M'
 
   api2:
-    <<: *api
+    platform: linux/amd64
+    image: starwhenry/rinha-backend-2026:latest
     environment:
       LISTEN_ADDR: '/run/sock/api2.sock'
+      GOMAXPROCS: '1'
+      GOMEMLIMIT: '150MiB'
+      N_PROBE_FAST: '8'
+      N_PROBE_FULL: '28'
+    volumes:
+      - sock:/run/sock
+    networks:
+      - rinha
+    deploy:
+      resources:
+        limits:
+          cpus: '0.40'
+          memory: '165M'
 
   proxy:
     image: nginx:alpine-slim
