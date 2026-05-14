@@ -17,3 +17,8 @@ Coisas que preciso estudar mais a fundo:
 - Algoritmos de busca vetorial (IVF, escolha de k, n_probe, tradeoffs).
 - Como calibrar latencia vs acuracia sem quebrar o contrato do desafio.
 - Como montar uma rotina de testes locais parecida com o teste da rinha.
+
+
+14/05/2026
+
+Ontem quando submeti o segundo teste acabei piorando o resultado, então decidi olhar outros projetos, ver o que a galera tava comentando sobre no discord/linkedin e percebi que a minha Api ainda estava muito Crua, decidi entender como as outras pessoas estavam resolvendo o problema e re-estruturando a minha api.. documentei tudo no REFACTOR.md
